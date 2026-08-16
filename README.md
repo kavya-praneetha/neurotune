@@ -6,12 +6,45 @@ The 16-core Zen 5 + 92 GB RAM carries local models on CPU instead, which is
 plenty for learning and small-to-mid models.
 
 ## Setup (one-time)
-Put your keys in `.env` (already created from `.env.example`):
+```bash
+cp .env.example .env         # then fill in only what you need
 ```
-ANTHROPIC_API_KEY=sk-ant-...
-OPENAI_API_KEY=sk-...        # optional
+`.env` is gitignored and is injected at runtime rather than baked into the
+Docker image, so keys never reach a published layer.
+
+| Variable | Needed by | Required? | Where to get it |
+|---|---|---|---|
+| `ANTHROPIC_API_KEY` | `agents/hello_agent.py` | for that script only | [console.anthropic.com](https://console.anthropic.com/settings/keys) |
+| `OPENAI_API_KEY` | only if you swap an example to an OpenAI model | optional | [platform.openai.com](https://platform.openai.com/api-keys) |
+
+**`neurotune/` needs no keys at all.** The whole pipeline — preprocessing,
+LOSO training, recommendation, RAG explanation — runs offline on simulated
+data, so you can clone this repo and run it without signing up for anything:
+
+```bash
+# fastest end-to-end demo: recommendation + RAG-grounded rationale (~10 s)
+uv run python -m neurotune.cli explain --subjects 3 --sessions 1 --epochs 1
 ```
-Local models via Ollama need **no** key.
+
+Measured on a 16-core Zen 5 CPU:
+
+| Command | Runtime |
+|---|---|
+| `explain --subjects 3 --sessions 1 --epochs 1` | ~9 s |
+| `recommend --subjects 3 --sessions 1` | ~150 s |
+| `run-all --subjects 3 --sessions 2 --epochs 1` | **>10 min** |
+
+`run-all` is slow because it invokes the five stages as independent commands
+(`cli.py:230`), so the simulation, ICA and STFT preprocessing is repeated once
+per stage rather than computed once and shared. Run individual stages while
+iterating.
+
+Minimum cohort for `detect`: **3 subjects** at 1 session, or 2 at 2 sessions.
+LOSO holds one subject out, and the validation split needs at least 2
+subject-sessions in what remains — fewer fails partway through with
+`need at least 2 subject-sessions to form a validation split`.
+
+Local models via Ollama also need **no** key.
 
 ## Run things
 Everything runs through `uv` — no `pip install`, no activating venvs:
