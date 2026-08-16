@@ -22,22 +22,29 @@ LOSO training, recommendation, RAG explanation — runs offline on simulated
 data, so you can clone this repo and run it without signing up for anything:
 
 ```bash
-# fastest end-to-end demo: recommendation + RAG-grounded rationale (~10 s)
-uv run python -m neurotune.cli explain --subjects 3 --sessions 1 --epochs 1
+# quickest thing that produces output (~9 s) — see the caveat below
+uv run python -m neurotune.cli explain --subjects 3 --sessions 1
 ```
 
 Measured on a 16-core Zen 5 CPU:
 
-| Command | Runtime |
-|---|---|
-| `explain --subjects 3 --sessions 1 --epochs 1` | ~9 s |
-| `recommend --subjects 3 --sessions 1` | ~150 s |
-| `run-all --subjects 3 --sessions 2 --epochs 1` | **>10 min** |
+| Command | Runtime | Runs the EEG pipeline? |
+|---|---|---|
+| `explain --subjects 3 --sessions 1` | ~9 s | **no** |
+| `recommend --subjects 3 --sessions 1` | ~150 s | no |
+| `detect --subjects 3 --sessions 1 --epochs 1` | ~2 min | yes |
+| `run-all --subjects 3 --sessions 2 --epochs 1` | ~14.7 min | yes |
 
-`run-all` is slow because it invokes the five stages as independent commands
-(`cli.py:230`), so the simulation, ICA and STFT preprocessing is repeated once
-per stage rather than computed once and shared. Run individual stages while
-iterating.
+Be aware what `explain` actually does: it builds the track catalogue, loads the
+RAG corpus, and explains a recommendation made for the stress level you pass in
+via `--stress` (default 8.0). It never simulates EEG, never preprocesses, and
+never runs detection (`cli.py:199`). It is a fast look at the recommendation and
+retrieval layers, **not** an end-to-end run. For that, use `detect` or `run-all`.
+
+`run-all` invokes the five stages as independent commands (`cli.py:230`), and
+three of them — `detect`, `validate`, `map` (`cli.py:61`, `104`, `139`) — each
+re-simulate the cohort and redo ICA and STFT from scratch. So the preprocessing
+runs three times instead of once. Run individual stages while iterating.
 
 Minimum cohort for `detect`: **3 subjects** at 1 session, or 2 at 2 sessions.
 LOSO holds one subject out, and the validation split needs at least 2
