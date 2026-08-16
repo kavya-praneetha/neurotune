@@ -1,0 +1,28 @@
+# Never copy the host virtualenv into the image — it is 2.8 GB of
+# machine-specific binaries, and the image builds its own from uv.lock.
+.venv/
+.venv
+
+# Real API keys. These are injected at runtime via env_file, never baked
+# into an image layer (layers are readable by anyone who pulls the image).
+.env
+
+# Repo metadata is not repo content.
+.git/
+.gitignore
+
+# Regenerated on first run.
+__pycache__/
+*.py[oc]
+.ipynb_checkpoints/
+
+# Python build artifacts.
+build/
+dist/
+wheels/
+*.egg-info
+
+# Docker's own files don't belong in the build context.
+Dockerfile
+.dockerignore
+docker-compose.yml

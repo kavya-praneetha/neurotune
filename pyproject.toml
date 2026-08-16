@@ -1,0 +1,48 @@
+[project]
+name = "ai-lab"
+version = "0.1.0"
+description = "AI + agent development learning environment (CPU-only, no GPU deps)"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    # --- core: notebooks + model SDKs + data stack ---
+    "jupyterlab>=4.2",
+    "ipywidgets>=8.1",
+    "anthropic>=0.40",
+    "openai>=1.50",
+    "python-dotenv>=1.0",
+    "numpy>=2.0",
+    "pandas>=2.2",
+    "matplotlib>=3.9",
+    "rich>=13.9",
+    # --- agent frameworks ---
+    "langgraph>=0.2",
+    "langchain>=0.3",
+    "langchain-anthropic>=0.2",
+    "langchain-openai>=0.2",
+    "pydantic-ai>=0.0.13",
+    # --- ML / DL learning ---
+    "torch>=2.4",
+    "transformers>=4.44",
+    "datasets>=3.0",
+    "scikit-learn>=1.5",
+    "sentence-transformers>=3.0",
+    "mne>=1.12.1",
+    "librosa>=0.11.0",
+    "xgboost>=3.3.0",
+    "statsmodels>=0.14.6",
+    "faiss-cpu>=1.14.3",
+    "mlflow>=3.15.0",
+    "soundfile>=0.14.0",
+]
+
+# Pull PyTorch from its CPU-only wheel index. Without this, `torch` on Linux
+# defaults to a CUDA build (~2.5 GB of libraries) that this AMD-iGPU machine
+# can never use.
+[tool.uv.sources]
+torch = { index = "pytorch-cpu" }
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true

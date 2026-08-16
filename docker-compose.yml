@@ -1,0 +1,58 @@
+services:
+  lab:
+    build: .
+    image: ai-lab:latest
+    ports:
+      - "8888:8888"
+
+    # Real keys are injected at runtime from .env, which .dockerignore keeps out
+    # of the build context. They therefore never end up in an image layer, which
+    # matters because layers are readable by anyone who can pull the image.
+    env_file:
+      - .env
+
+    volumes:
+      # Notebooks are the work product — persist them to the host so a
+      # `docker compose down` never destroys them.
+      - ./notebooks:/app/notebooks
+      # Edit the package on the host and rerun without rebuilding the image.
+      - ./neurotune:/app/neurotune
+      - ./agents:/app/agents
+
+    # Jupyter prints its access token to the container logs on startup:
+    #   docker compose logs lab
+    command:
+      - jupyter
+      - lab
+      - --ip=0.0.0.0
+      - --port=8888
+      - --no-browser
+
+# ---------------------------------------------------------------------------
+# Ollama is NOT containerised here, and agents/local_llm.py will not reach it
+# from inside this container as written.
+#
+# Two reasons, both verified on this host:
+#   1. agents/local_llm.py:14 hardcodes base_url="http://localhost:11434/v1".
+#      Inside a container, "localhost" is the container, not the host.
+#   2. Ollama is bound to 127.0.0.1:11434 (loopback only), so it is unreachable
+#      from a bridge network even via host-gateway.
+#
+# To use local models from the container, do BOTH:
+#   a. Expose Ollama on the host:
+#        sudo systemctl edit ollama
+#        # add:  [Service]
+#        #       Environment="OLLAMA_HOST=0.0.0.0:11434"
+#        sudo systemctl restart ollama
+#      Only do this on a trusted network — it makes Ollama reachable from any
+#      host that can route to this machine.
+#   b. Point the code at the host gateway instead of localhost, by adding to
+#      the service above:
+#        extra_hosts:
+#          - "host.docker.internal:host-gateway"
+#      and changing local_llm.py to read the URL from an env var, e.g.
+#        base_url=os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434/v1")
+#      then setting OLLAMA_BASE_URL=http://host.docker.internal:11434/v1 here.
+#
+# The Jupyter, Anthropic and OpenAI paths all work without any of this.
+# ---------------------------------------------------------------------------
